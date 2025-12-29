@@ -1,0 +1,17 @@
+int a
+int b
+int c
+
+a := 10
+b := 5
+
+// Probamos aritmética y asignación con el nuevo sistema
+c := a + b * 2
+
+// Probamos el repeat (que usa la nueva estructura atributos)
+repeat 2 do
+    c := c + 1
+done
+
+// Probamos el PUT final
+c

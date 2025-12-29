@@ -102,12 +102,11 @@ sentencia:
         log_regla("Sentencia: Declaración");
     }
 
-    /* 5. REPEAT (CORREGIDO EL ERROR AQUÍ) */
+    /* 5. REPEAT  */
     | T_REPEAT expresion T_DO marcador_inicio_repeat T_EOL lista_sentencias T_DONE T_EOL {
         log_regla("Sentencia: Repeat-Do-Done");
         
-        /* ERROR ANTIGUO: info_simbolo* tope = $2; (Incompatible) */
-        /* CORRECCIÓN P3: Pasamos los campos del struct 'atributos' */
+        /* Pasamos los campos del struct 'atributos' */
         
         // $2 es la expresión tope (struct atributos)
         // $4 es el marcador (struct atributos), donde .quad tiene la etiqueta de inicio
@@ -122,7 +121,6 @@ sentencia:
 
 marcador_inicio_repeat: 
     /* vacío */ {
-        /* CORREGIDO EL ERROR AQUÍ: Devuelve un struct, no un puntero */
         
         /* 1. Generamos temporal contador */
         char* t_cont = sem_generar_temporal();
