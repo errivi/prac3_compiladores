@@ -1,0 +1,27 @@
+// Test de Estres: Muchas operaciones
+int a
+int b
+float c
+int arr[100]
+
+a := 1
+b := 2
+c := 3.5
+
+// Generacion masiva de instrucciones
+a := a + b * 2 - 1
+b := a * a + b
+c := c + 1.0 + 2.0 + 3.0 + 4.0
+arr[0] := a
+arr[1] := b
+arr[50] := a + b
+arr[99] := 100
+
+// Bucle largo
+repeat 100 do
+    a := a + 1
+    c := c + 0.1
+done
+
+// Resultado final
+c

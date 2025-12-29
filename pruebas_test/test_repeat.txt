@@ -1,0 +1,5 @@
+int i
+i := 10
+repeat 5 do
+   i := i + 1
+done

@@ -1,0 +1,27 @@
+// Test Integrado: Arrays + Repeat + Aritmetica
+int v[10]
+int i
+int total
+int temp
+
+// Inicializacion
+i := 0
+total := 0
+
+// Bucle para llenar array y sumar
+repeat 5 do
+    // Calculo del cuadrado: i*i
+    temp := i * i
+    
+    // Guardar en array
+    v[i] := temp
+    
+    // Acumular en total leyendo del array
+    total := total + v[i]
+    
+    // Incremento
+    i := i + 1
+done
+
+// Resultado final esperado: 0+1+4+9+16 = 30
+total
