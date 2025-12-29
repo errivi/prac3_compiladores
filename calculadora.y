@@ -21,15 +21,15 @@ void log_regla(const char *mensaje) {
     #include "symtab.h"
 }
 
-/* Union simplificada para C3A numérico */
+/* --- UNION ACTUALIZADA PARA PRACTICA 3 --- */
 %union {
-    info_simbolo* info; /* Puntero a simbolo (temporal o variable) */
+    atributos atris;    /* Estructura completa (simbolo + listas de saltos) */
     char* texto;        /* Identificadores */
     int ival;           /* Literales enteros y Tipos */
     float fval;         /* Literales reales */
 }
 
-/* --- TOKENS (Sincronizados con calculadora.l) --- */
+/* --- TOKENS --- */
 %token T_EOL T_PCOMA T_COMA 
 %token T_REPEAT T_DO T_DONE T_OPCIONS
 %token T_LPAREN T_RPAREN T_LBRACKET T_RBRACKET 
@@ -46,9 +46,10 @@ void log_regla(const char *mensaje) {
 %token <fval> T_LIT_REAL
 %token <texto> T_ID
 
-/* --- TIPOS DE RETORNO --- */
-%type <info> expresion termino potencia factor base
-%type <info> marcador_inicio_repeat
+/* --- TIPOS DE RETORNO (TODO USA 'atris' AHORA) --- */
+%type <atris> expresion termino potencia factor base
+%type <atris> marcador_inicio_repeat 
+
 %type <ival> tipo declaracion
 
 %%
@@ -75,9 +76,10 @@ lista_sentencias:
 sentencia:
       T_EOL { }
     
-    /* 1. Asignación ARITMÉTICA: x := 5 + 3 */
+    /* 1. Asignación: x := 5 + 3 */
     | T_ID T_ASSIGN expresion T_EOL {
         log_regla("Sentencia: Asignacion");
+        /* $3 es de tipo 'atributos', accedemos a su puntero simb para generar código */
         sem_asignar($1, $3); 
         free($1);
     }
@@ -89,32 +91,28 @@ sentencia:
         free($1);
     }
 
-    /* 3. Impresión (Expresión suelta se imprime con PUT) */
+    /* 3. Impresión (PUT) */
     | expresion T_EOL {
         log_regla("Sentencia: Imprimir (PUT)");
         sem_imprimir_expresion($1);
     }
 
-    /* 4. Declaración de Variables */
+    /* 4. Declaración */
     | declaracion T_EOL {
         log_regla("Sentencia: Declaración");
     }
 
-    /* 5. Estructura de Control: REPEAT */
+    /* 5. REPEAT (CORREGIDO EL ERROR AQUÍ) */
     | T_REPEAT expresion T_DO marcador_inicio_repeat T_EOL lista_sentencias T_DONE T_EOL {
         log_regla("Sentencia: Repeat-Do-Done");
         
-        info_simbolo* tope = $2;      /* N repeticiones */
-        info_simbolo* contador = $4;  /* Marcador con contador temporal */
+        /* ERROR ANTIGUO: info_simbolo* tope = $2; (Incompatible) */
+        /* CORRECCIÓN P3: Pasamos los campos del struct 'atributos' */
         
-        if (contador) {
-            /* Recuperamos la etiqueta de inicio guardada en el contador */
-            int etiqueta_inicio = contador->u.valor_int;
-            sem_cerrar_repeat(contador, tope, etiqueta_inicio);
-            
-            free(contador->nombre);
-            free(contador);
-        }
+        // $2 es la expresión tope (struct atributos)
+        // $4 es el marcador (struct atributos), donde .quad tiene la etiqueta de inicio
+        
+        sem_cerrar_repeat($4.simb, $2.simb, $4.quad);
     }
     
     | error T_EOL { yyerrok; }
@@ -122,24 +120,30 @@ sentencia:
 
 /* --- REGLAS AUXILIARES --- */
 
-/* Inicializa el contador del bucle y guarda la etiqueta de inicio */
 marcador_inicio_repeat: 
     /* vacío */ {
-        /* Generamos temporal $tXX */
-        char* t_cont = sem_generar_temporal();
+        /* CORREGIDO EL ERROR AQUÍ: Devuelve un struct, no un puntero */
         
-        /* Emitimos $tXX := 0 */
+        /* 1. Generamos temporal contador */
+        char* t_cont = sem_generar_temporal();
         sem_emitir("%s := 0", t_cont);
         
-        /* Preparamos estructura para pasar info arriba */
-        info_simbolo* info = malloc(sizeof(info_simbolo));
-        if (info) {
-            info->nombre = t_cont;
-            info->tipo = T_ENTERO;
-            /* Guardamos etiqueta L (siguiente instrucción) */
-            info->u.valor_int = sem_generar_etiqueta(); 
-        }
-        $$ = info;
+        /* 2. Construimos el struct atributos de retorno */
+        atributos a;
+        a.simb = malloc(sizeof(info_simbolo)); // Info dummy para llevar el nombre
+        a.simb->nombre = t_cont;
+        a.simb->tipo = T_ENTERO;
+        
+        /* 3. Guardamos la etiqueta de vuelta (inicio del bucle) en .quad */
+        a.quad = sem_generar_etiqueta();
+        
+        /* 4. Inicializamos listas vacías (por seguridad) */
+        a.truelist = NULL;
+        a.falselist = NULL;
+        a.nextlist = NULL;
+
+        /* 5. Asignamos el struct a $$ */
+        $$ = a; 
     }
     ;
 
@@ -206,8 +210,14 @@ potencia:
 
 factor:
       T_MENOS factor { 
-          /* Unario simple */
-          $$ = $2; 
+          // Unario: Generamos instruccion CHS (Change Sign)
+          char* temp = sem_generar_temporal();
+          if ($2.simb->tipo == T_REAL)
+             sem_emitir("%s := CHSF %s", temp, $2.simb->nombre);
+          else
+             sem_emitir("%s := CHSI %s", temp, $2.simb->nombre);
+          
+          $$ = sem_crear_literal(temp, $2.simb->tipo);
       }
     | T_MAS factor   { $$ = $2; }
     | base           { $$ = $1; }
@@ -215,7 +225,8 @@ factor:
 
 base:
       T_LIT_REAL   { 
-          char buf[64]; sprintf(buf, "%.6g", $1);
+          char buf[64];
+          sprintf(buf, "%.6g", $1);
           $$ = sem_crear_literal(buf, T_REAL); 
       }
     | T_LIT_ENTERO { 
@@ -260,7 +271,11 @@ int main(int argc, char *argv[]) {
     yyparse();
     
     fprintf(logfile, "--- Fin Analisis ---\n");
-    printf("\tHALT\n"); 
+    
+    /* FASE 3: Volcado final del buffer con HALT */
+    sem_emitir("HALT"); 
+    sem_finalizar_salida(stdout);
+
     fclose(logfile);
     if (argc > 1) fclose(yyin);
     return 0;

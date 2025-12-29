@@ -3,59 +3,64 @@
 
 #include "symtab.h"
 
-/* --- HERRAMIENTAS DE GENERACIÓN C3A --- */
-/* Genera un nombre de variable temporal nuevo: "$t1", "$t2"... */
+// --- ESTRUCTURAS PARA BACKPATCHING ---
+
+// Nodo de una lista de etiquetas pendientes de rellenar
+typedef struct lista_nodos {
+    int referencia; // Número de instrucción que tiene el hueco a rellenar
+    struct lista_nodos *siguiente;
+} lista_nodos;
+
+// Estructura que devuelven las expresiones booleanas y sentencias
+typedef struct {
+    info_simbolo *simb;      // Para expresiones aritméticas (el resultado $t1)
+    lista_nodos *truelist;   // Lista de saltos si es VERDADERO
+    lista_nodos *falselist;  // Lista de saltos si es FALSO
+    lista_nodos *nextlist;   // Lista de saltos al terminar el bloque
+    int quad;                // Número de instrucción (para marcadores M)
+} atributos;
+
+// --- FUNCIONES DE BUFFER Y EMISIÓN ---
+
+// Emite una instrucción al buffer y devuelve su número de línea
+int sem_emitir(const char* fmt, ...);
+
+// Imprime todo el buffer al fichero de salida (al final del main)
+void sem_finalizar_salida(FILE* out);
+
+// --- FUNCIONES DE LISTAS (BACKPATCHING) ---
+
+// Crea una lista nueva con una sola referencia (número de instrucción)
+lista_nodos* sem_makelist(int referencia);
+
+// Fusiona dos listas en una sola
+lista_nodos* sem_merge(lista_nodos* l1, lista_nodos* l2);
+
+// Rellena las direcciones de los saltos de la lista con la etiqueta destino
+void sem_backpatch(lista_nodos* lista, int etiqueta_destino);
+
+
+// --- GESTIÓN DE VARIABLES Y OPERACIONES (ADAPTADO) ---
 char* sem_generar_temporal();
+int sem_generar_etiqueta(); // Devuelve la siguiente instrucción libre
 
-/* Genera una etiqueta/número de línea para saltos: 10, 11... */
-int sem_generar_etiqueta();
+// Operaciones aritméticas (ahora devuelven atributos completos)
+atributos sem_operar_binario(atributos A, atributos B, char* op_int, char* op_float);
+atributos sem_crear_literal(char* valor, int tipo);
+atributos sem_obtener_simbolo(char* nombre);
+atributos sem_acceder_array(char* nombre_array, atributos indice);
 
-/* Emite una instrucción C3A numerada al output */
-void sem_emitir(const char* fmt, ...);
-
-/* --- GESTIÓN DE SIMBOLOS Y LITERALES --- */
-/* Crea un símbolo a partir de un literal (ej: "10" o "3.5") */
-info_simbolo* sem_crear_literal(char* valor, int tipo);
-
-/* Busca una variable y devuelve su info (o crea un dummy si falla) */
-info_simbolo* sem_obtener_simbolo(char* nombre);
-
-/* --- OPERACIONES --- */
-/* Genera código para operación binaria (Suma, Resta, Mult, Div) */
-/* Devuelve el símbolo temporal donde se guardó el resultado */
-info_simbolo* sem_operar_binario(info_simbolo* a, info_simbolo* b, 
-                                 char* op_int, char* op_float);
-
-/* Declaración de variables (solo tabla de símbolos) */
+// Sentencias
+void sem_asignar(char* nombre_destino, atributos valor);
+void sem_asignar_array(char* nombre_array, atributos indice, atributos valor);
+void sem_imprimir_expresion(atributos s);
 void sem_declarar(int tipo, char* nombre);
-
-/* Declaración de arrays: int a[10] */
 void sem_declarar_array(int tipo, char* nombre, int tamanyo);
 
-/* Asignación simple: x := 5 */
-void sem_asignar(char* nombre_destino, info_simbolo* valor);
-
-/* Impresión (ahora genera PUT) */
-void sem_imprimir_expresion(info_simbolo* s);
-
-/* --- UTILIDADES --- */
-void yyerror(const char *s);
-const char* tipo_a_cadena(tipo_variable tipo);
-
-/* --- STUBS (Para mantener compatibilidad con Práctica 1 si fuera necesario) --- */
-void sem_abrir_plantilla(char* nombre);
-void sem_agregar_campo_a_plantilla(int tipo, char* id);
-void sem_cerrar_plantilla();
-void sem_declarar_instancia_actual(char* nombre_instancia);
-
-/* Genera el código final del bucle repeat: Incr. contador + IF GOTO */
+// Función específica para cerrar el bucle REPEAT (Práctica 2 legacy, adaptado)
 void sem_cerrar_repeat(info_simbolo* contador, info_simbolo* tope, int etiqueta_inicio);
 
-
-/* Genera código para leer de un array: devuelve el temporal con el valor */
-info_simbolo* sem_acceder_array(char* nombre_array, info_simbolo* indice);
-
-/* Genera código para escribir en un array */
-void sem_asignar_array(char* nombre_array, info_simbolo* indice, info_simbolo* valor);
+// Utilidad
+void yyerror(const char *s);
 
 #endif
