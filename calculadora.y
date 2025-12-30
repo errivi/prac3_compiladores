@@ -52,10 +52,10 @@ void log_regla(const char *mensaje) {
 %token <texto> T_ID
 
 /* --- TIPOS DE RETORNO --- */
-/* Todos los elementos que generan código o flujo usan 'atris' */
 %type <atris> expresion termino potencia factor base
 %type <atris> marcador_inicio_repeat 
-%type <atris> condicion M
+%type <atris> condicion M N
+%type <atris> cond_or cond_and cond_not cond_rel
 
 %type <ival> tipo declaracion
 
@@ -117,12 +117,21 @@ sentencia:
     /* 6. IF-THEN (Sin Else) */
     | T_IF condicion T_THEN M T_EOL lista_sentencias T_FI T_EOL {
         log_regla("Sentencia: IF");
-        /* Backpatching:
-           - Si TRUE: Ir a M ($4.quad)
-           - Si FALSE: Saltar al final (instrucción actual)
-        */
         sem_backpatch($2.truelist, $4.quad);
         sem_backpatch($2.falselist, sem_generar_etiqueta());
+    }
+
+    /* 7. IF-THEN-ELSE */
+    | T_IF condicion T_THEN M T_EOL lista_sentencias N T_ELSE M T_EOL lista_sentencias T_FI T_EOL {
+        log_regla("Sentencia: IF-ELSE");
+        
+        /* $2: condicion, $4: M(then), $7: N(salto fin), $9: M(else) */
+        
+        sem_backpatch($2.truelist, $4.quad);   /* True -> Then */
+        sem_backpatch($2.falselist, $9.quad);  /* False -> Else */
+        
+        int final = sem_generar_etiqueta();
+        sem_backpatch($7.nextlist, final);     /* Fin Then -> Final */
     }
     
     | error T_EOL { yyerrok; }
@@ -130,12 +139,21 @@ sentencia:
 
 /* --- REGLAS AUXILIARES --- */
 
-/* Marcador M: Guarda el número de instrucción actual */
+/* Marcador M: Guarda posición actual */
 M: /* vacío */ { 
     atributos a;
     a.quad = sem_generar_etiqueta();
-    /* Inicializamos resto a null/0 por seguridad */
     a.simb = NULL; a.truelist = NULL; a.falselist = NULL; a.nextlist = NULL;
+    $$ = a;
+}
+;
+
+/* Marcador N: Genera GOTO y guarda posición */
+N: /* vacío */ {
+    int instr = sem_emitir("GOTO");
+    atributos a;
+    a.nextlist = sem_makelist(instr);
+    a.simb = NULL; a.truelist = NULL; a.falselist = NULL; a.quad = 0;
     $$ = a;
 }
 ;
@@ -179,16 +197,67 @@ declaracion:
    EXPRESIONES BOOLEANAS Y ARITMÉTICAS
    ========================================================================== */
 
-/* NOTA: Para esta fase, incluimos las comparaciones dentro de un no-terminal
-   separado 'condicion' para usarlas en el IF. */
-
 condicion:
+      cond_or { $$ = $1; }
+    ;
+
+cond_or:
+      cond_or T_OR M cond_and {
+          log_regla("Operacion: OR");
+          sem_backpatch($1.falselist, $3.quad);
+          atributos res;
+          res.truelist = sem_merge($1.truelist, $4.truelist);
+          res.falselist = $4.falselist;
+          $$ = res;
+      }
+    | cond_and { $$ = $1; }
+    ;
+
+cond_and:
+      cond_and T_AND M cond_not {
+          log_regla("Operacion: AND");
+          sem_backpatch($1.truelist, $3.quad);
+          atributos res;
+          res.truelist = $4.truelist;
+          res.falselist = sem_merge($1.falselist, $4.falselist);
+          $$ = res;
+      }
+    | cond_not { $$ = $1; }
+    ;
+
+cond_not:
+      T_NOT cond_not {
+          log_regla("Operacion: NOT");
+          atributos res;
+          res.truelist = $2.falselist;
+          res.falselist = $2.truelist;
+          $$ = res;
+      }
+    | T_LPAREN condicion T_RPAREN { $$ = $2; }
+    | cond_rel { $$ = $1; }
+    ;
+
+cond_rel:
       expresion T_EQ expresion { $$ = sem_operar_relacional($1, $3, "EQ"); }
     | expresion T_NE expresion { $$ = sem_operar_relacional($1, $3, "NE"); }
     | expresion T_LT expresion { $$ = sem_operar_relacional($1, $3, "LT"); }
     | expresion T_LE expresion { $$ = sem_operar_relacional($1, $3, "LE"); }
     | expresion T_GT expresion { $$ = sem_operar_relacional($1, $3, "GT"); }
     | expresion T_GE expresion { $$ = sem_operar_relacional($1, $3, "GE"); }
+    | T_TRUE { 
+        atributos res; 
+        int instr = sem_emitir("GOTO"); 
+        res.truelist = sem_makelist(instr); 
+        res.falselist = NULL; 
+        $$ = res; 
+    }
+    | T_FALSE { 
+        atributos res; 
+        int instr = sem_emitir("GOTO"); 
+        res.falselist = sem_makelist(instr); 
+        res.truelist = NULL; 
+        $$ = res; 
+    }
     ;
 
 expresion:

@@ -1,0 +1,30 @@
+int a
+int b
+int mayor
+
+a := 10
+b := 20
+
+// 1. Prueba de IF-ELSE simple
+if a < b then
+    mayor := b
+else
+    mayor := a
+fi
+
+// 2. Prueba de lógica AND (Cortocircuito)
+// Si a < b es falso, NO debería saltar a comprobar b > 0
+if a < b and b > 0 then
+    a := 1
+fi
+
+// 3. Prueba de lógica OR (Cortocircuito)
+// Si a == 1 es cierto, NO debería saltar a comprobar b == 20
+if a == 1 or b == 20 then
+    b := 1
+fi
+
+// Resultado final
+mayor
+a
+b
