@@ -1,0 +1,15 @@
+int a
+int b
+
+a := 10
+b := 20
+
+// Probamos el IF
+if a < b then
+    a := 999
+fi
+
+// Esto debe ejecutarse siempre
+b := 0
+
+a
