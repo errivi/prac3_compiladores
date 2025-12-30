@@ -50,12 +50,32 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 "float"         { return T_FLOAT; }
 "repeat"        { return T_REPEAT; }
 "do"            { return T_DO; }     
-"done"          { return T_DONE; }   
+"done"          { return T_DONE; }
+"if"            { return T_IF; }
+"then"          { return T_THEN; }
+"fi"            { return T_FI; }
+"else"          { return T_ELSE; }   
 "Opcions:"      { return T_OPCIONS; } 
+
 
     /* --- Literales Numéricos --- */
 {REAL}          { yylval.fval = atof(yytext); return T_LIT_REAL; }
 {ENTERO}        { yylval.ival = atoi(yytext); return T_LIT_ENTERO; }
+
+    /* --- Operadores relacionales --- */
+"=="            { return T_EQ; }
+"!="            { return T_NE; } 
+">"             { return T_GT; }
+">="            { return T_GE; }
+"<"             { return T_LT; }
+"<="            { return T_LE; }
+
+    /* --- Operadores Booleanos --- */
+"true"          { return T_TRUE; }
+"false"         { return T_FALSE; }
+"and"           { return T_AND; }
+"or"            { return T_OR; }
+"not"           { return T_NOT; }
 
     /* --- Operadores Aritméticos y Asignación --- */
 ":="            { return T_ASSIGN; }

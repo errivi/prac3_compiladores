@@ -197,3 +197,39 @@ void sem_cerrar_repeat(info_simbolo* contador, info_simbolo* tope, int etiqueta_
     sem_emitir("%s := %s ADDI 1", contador->nombre, contador->nombre);
     sem_emitir("IF %s LTI %s GOTO %d", contador->nombre, tope->nombre, etiqueta_inicio);
 }
+
+/* --- LÓGICA BOOLEANA --- */
+
+atributos sem_operar_relacional(atributos A, atributos B, char* op) {
+    /* 1. Comprobar tipos y castear si es necesario (igual que en binario) */
+    char* sufijo = "I"; // Por defecto Entero
+    if (A.simb->tipo == T_REAL || B.simb->tipo == T_REAL) {
+        sufijo = "F";   // Si alguno es real, usamos Float
+        // (Aquí irían los castings I2F si quieres ser purista, por ahora asumimos compatibilidad)
+    }
+
+    /* 2. Construir el operador completo (ej: "LTI" o "LTF") */
+    char op_completo[10];
+    sprintf(op_completo, "%s%s", op, sufijo);
+
+    /* 3. Generar el salto condicional VERDADERO incompleto */
+    /* "IF a LT b GOTO [hueco]" */
+    int instr_true = sem_emitir("IF %s %s %s GOTO", A.simb->nombre, op_completo, B.simb->nombre);
+    
+    /* 4. Generar el salto FALSO incompleto (un GOTO incondicional justo después) */
+    /* Si no saltó en el IF, caerá aquí. "GOTO [hueco]" */
+    int instr_false = sem_emitir("GOTO");
+
+    /* 5. Crear las listas de backpatching */
+    atributos res;
+    res.simb = NULL; // Una exp booleana no tiene valor "$t", tiene flujo
+    
+    /* La truelist contiene la instrucción del IF (que saltará si es verdad) */
+    res.truelist = sem_makelist(instr_true);
+    
+    /* La falselist contiene la instrucción del GOTO (que saltará si es mentira) */
+    res.falselist = sem_makelist(instr_false);
+    
+    res.nextlist = NULL;
+    return res;
+}

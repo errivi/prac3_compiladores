@@ -57,6 +57,9 @@ void sem_imprimir_expresion(atributos s);
 void sem_declarar(int tipo, char* nombre);
 void sem_declarar_array(int tipo, char* nombre, int tamanyo);
 
+// Operaciones booleanas
+atributos sem_operar_relacional(atributos A, atributos B, char* op);
+
 // Función específica para cerrar el bucle REPEAT (Práctica 2 legacy, adaptado)
 void sem_cerrar_repeat(info_simbolo* contador, info_simbolo* tope, int etiqueta_inicio);
 
