@@ -32,6 +32,7 @@ void log_regla(const char *mensaje) {
 /* --- TOKENS --- */
 %token T_EOL T_PCOMA T_COMA 
 %token T_REPEAT T_DO T_DONE T_OPCIONS
+%token T_WHILE T_UNTIL
 %token T_LPAREN T_RPAREN T_LBRACKET T_RBRACKET 
 %token T_ASSIGN
 
@@ -132,6 +133,41 @@ sentencia:
         
         int final = sem_generar_etiqueta();
         sem_backpatch($7.nextlist, final);     /* Fin Then -> Final */
+    }
+
+    /* 8. WHILE: while M cond do M sentencias done */
+    | T_WHILE M condicion T_DO M T_EOL lista_sentencias T_DONE T_EOL {
+        log_regla("Sentencia: WHILE");
+        /* $2 (M1): Etiqueta inicio Condición (para volver atrás)
+           $3 (cond): La condición con sus listas true/false
+           $5 (M2): Etiqueta inicio Cuerpo
+        */
+        sem_backpatch($3.truelist, $5.quad);
+
+        /* 1. Primero emitimos el salto para volver arriba */
+        sem_emitir("GOTO %d", $2.quad);
+
+        /* 2. Generamos la etiqueta de salida (sig_instruccion libre) */
+        /* y rellenamos los saltos falsos para que vengan aquí. */
+        sem_backpatch($3.falselist, sem_generar_etiqueta());
+
+
+    }
+
+    /* 9. DO-UNTIL: do M sentencias until cond */
+    | T_DO M T_EOL lista_sentencias T_UNTIL condicion T_EOL {
+        log_regla("Sentencia: DO-UNTIL");
+        /* $2 (M): Etiqueta inicio Cuerpo
+           $6 (cond): Condición de salida
+        */
+
+        /* Lógica UNTIL: Repetir mientras sea FALSO.
+           - Si FALSE: Vuelve al inicio ($2).
+           - Si TRUE: Sale (siguiente instrucción).
+        */
+        
+        sem_backpatch($6.falselist, $2.quad); // Vuelve atrás
+        sem_backpatch($6.truelist, sem_generar_etiqueta()); // Sale
     }
     
     | error T_EOL { yyerrok; }

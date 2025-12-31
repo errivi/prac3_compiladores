@@ -1,0 +1,19 @@
+int i
+int s
+
+// 1. Prueba WHILE (Sumar 1 hasta 5)
+i := 0
+while i < 5 do
+    i := i + 1
+done
+
+// 2. Prueba DO-UNTIL (Restar hasta 0)
+// El cuerpo se ejecuta al menos una vez
+s := 10
+do
+    s := s - 1
+until s == 0
+
+// Resultado final
+i
+s

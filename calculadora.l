@@ -54,8 +54,11 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 "if"            { return T_IF; }
 "then"          { return T_THEN; }
 "fi"            { return T_FI; }
-"else"          { return T_ELSE; }   
-"Opcions:"      { return T_OPCIONS; } 
+"else"          { return T_ELSE; }
+"while"         { return T_WHILE; }
+"until"         { return T_UNTIL; }   
+"Opcions:"      { return T_OPCIONS; }
+
 
 
     /* --- Literales Numéricos --- */
