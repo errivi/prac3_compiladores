@@ -142,6 +142,16 @@ atributos sem_crear_literal(char* valor, int tipo) {
     return crear_atribs(s);
 }
 
+/* Función para crear un temporal "vacío" (usada en bucles para contadores) */
+atributos sem_crear_temporal(int tipo) {
+    /* 1. Obtenemos un nombre nuevo ($tXX) usando función existente */
+    char* nombre = sem_generar_temporal();
+    
+    /* 2. Empaquetamos en la estructura 'atributos' usando función existente */
+    /* Aunque se llame 'literal', sirve para crear la estructura del símbolo */
+    return sem_crear_literal(nombre, tipo);
+}
+
 atributos sem_obtener_simbolo(char* nombre) {
     sym_value_type info;
     if (sym_lookup(nombre, &info) == SYMTAB_NOT_FOUND) {

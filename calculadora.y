@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "semantica.h" 
 #include "symtab.h"
 
@@ -56,7 +57,6 @@ void log_regla(const char *mensaje) {
 
 /* --- TIPOS DE RETORNO --- */
 %type <atris> expresion termino potencia factor base
-%type <atris> marcador_inicio_repeat 
 %type <atris> condicion M N
 %type <atris> cond_or cond_and cond_not cond_rel
 %type <atris> for_header
@@ -114,10 +114,68 @@ sentencia:
         log_regla("Sentencia: Declaración");
     }
 
-    /* 5. REPEAT */
-    | T_REPEAT expresion T_DO marcador_inicio_repeat T_EOL lista_sentencias T_DONE T_EOL {
-        log_regla("Sentencia: Repeat-Do-Done");
-        sem_cerrar_repeat($4.simb, $2.simb, $4.quad);
+/* 5. REPEAT con OPTIMIZACIÓN (Loop Unrolling) */
+    | T_REPEAT expresion T_DO { 
+        /* 1. ANTES del cuerpo: Empezamos a grabar */
+        sem_start_record(); 
+      } 
+      T_EOL lista_sentencias T_DONE T_EOL {
+        log_regla("Sentencia: Repeat Optimizado");
+        
+        /* 2. DESPUÉS del cuerpo: Paramos y recuperamos el texto */
+        char* cuerpo = sem_stop_record();
+        
+        /* 3. Análisis: ¿Es un literal entero pequeño (<= 5)? */
+        int es_literal = 0;
+        int repeticiones = 0;
+        
+        /* Si el nombre del símbolo empieza por dígito, es un literal */
+        if (isdigit($2.simb->nombre[0])) {
+             es_literal = 1;
+             repeticiones = atoi($2.simb->nombre);
+        }
+
+        /* --- CAMINO A: OPTIMIZACIÓN (Unrolling) --- */
+        if (es_literal && repeticiones > 0 && repeticiones <= 5) {
+             // Simplemente pegamos el código N veces
+             for (int k = 0; k < repeticiones; k++) {
+                 sem_emitir_bloque(cuerpo);
+             }
+        } 
+        /* --- CAMINO B: BUCLE ESTÁNDAR (Dinámico) --- */
+        else {
+             
+             // 1. Crear contador temporal y asignar 0
+             atributos contador = sem_crear_temporal(T_ENTERO);
+             atributos cero = sem_crear_literal("0", T_ENTERO);
+             sem_asignar(contador.simb->nombre, cero);
+             
+             // 2. Etiqueta de inicio del bucle
+             int etiqueta_inicio = sem_generar_etiqueta();
+             
+             // 3. Condición de salida: contador < expresion
+             atributos cond = sem_operar_relacional(contador, $2, "LT");
+             
+             // 4. Si la condición es FALSA, saltar al final (Exit)
+             int etiqueta_cuerpo = sem_generar_etiqueta();
+             sem_backpatch(cond.truelist, etiqueta_cuerpo); // Si TRUE, entra al cuerpo
+             
+             // 5. Inyectar el cuerpo grabado
+             sem_emitir_bloque(cuerpo);
+             
+             // 6. Incrementar contador: contador := contador + 1
+             atributos uno = sem_crear_literal("1", T_ENTERO);
+             atributos suma = sem_operar_binario(contador, uno, "ADDI", "ADDF");
+             sem_asignar(contador.simb->nombre, suma);
+             
+             // 7. Saltar al inicio para comprobar condición
+             sem_emitir("GOTO %d", etiqueta_inicio);
+             
+             // 8. Etiqueta final (Backpatching del False)
+             sem_backpatch(cond.falselist, sem_generar_etiqueta());
+        }
+        
+        free(cuerpo);
     }
 
     /* 6. IF-THEN (Sin Else) */
@@ -313,21 +371,6 @@ N: /* vacío */ {
     $$ = a;
 }
 ;
-
-marcador_inicio_repeat: 
-    /* vacío */ {
-        char* t_cont = sem_generar_temporal();
-        sem_emitir("%s := 0", t_cont);
-        
-        atributos a;
-        a.simb = malloc(sizeof(info_simbolo));
-        a.simb->nombre = t_cont;
-        a.simb->tipo = T_ENTERO;
-        a.quad = sem_generar_etiqueta();
-        a.truelist = NULL; a.falselist = NULL; a.nextlist = NULL;
-        $$ = a;
-    }
-    ;
 
 /* Regla auxiliar para configurar la cabecera del FOR */
 for_header:

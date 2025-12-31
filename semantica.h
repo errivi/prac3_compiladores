@@ -42,6 +42,7 @@ void sem_backpatch(lista_nodos* lista, int etiqueta_destino);
 
 // --- GESTIÓN DE VARIABLES Y OPERACIONES ---
 char* sem_generar_temporal();
+atributos sem_crear_temporal(int tipo);
 int sem_generar_etiqueta(); // Devuelve la siguiente instrucción libre
 
 // Operaciones aritméticas (ahora devuelven atributos completos)
