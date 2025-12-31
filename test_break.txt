@@ -1,0 +1,49 @@
+// ==========================================
+// TEST BREAK: SALTOS EXPLÍCITOS
+// ==========================================
+int i
+int j
+int sum
+int check_simple
+
+// 1. Prueba Break Simple
+// Bucle infinito potencial (while true) cortado por break
+i := 0
+check_simple := 0
+
+while 1 == 1 do
+    if i == 5 then
+        break
+    fi
+    i := i + 1
+    check_simple := i
+done
+// Al salir, i debe ser 5.
+
+// 2. Prueba Break Anidado
+// Bucle externo: 3 veces (0, 1, 2)
+// Bucle interno: Debería ser 10 veces, pero cortamos en 2.
+sum := 0
+i := 0
+
+while i < 3 do
+    j := 0
+    while j < 10 do
+        if j == 2 then
+            break // Rompe solo el while j...
+        fi
+        
+        sum := sum + 1
+        j := j + 1
+    done
+    // Aquí seguimos en el bucle externo
+    i := i + 1
+done
+
+// Calculo esperado:
+// Externo corre 3 veces.
+// Interno corre 2 veces por cada externa (j=0, j=1).
+// sum = 3 * 2 = 6
+
+check_simple
+sum

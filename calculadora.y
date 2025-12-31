@@ -174,9 +174,9 @@ sentencia:
            - Si TRUE: Sale (siguiente instrucción).
         */
         
-        sem_backpatch($6.falselist, $2.quad); // Vuelve atrás
+        sem_backpatch($7.falselist, $2.quad); // Vuelve atrás
         int etiqueta_salida = sem_generar_etiqueta();
-        sem_backpatch($6.truelist, etiqueta_salida); // Sale
+        sem_backpatch($7.truelist, etiqueta_salida); // Sale
 
         /* mandamoslos breaks a la salida */
         sem_close_break_layer(etiqueta_salida);
