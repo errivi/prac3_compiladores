@@ -73,6 +73,11 @@ void sem_init_break_layer();
 void sem_close_break_layer(int etiqueta_destino);
 void sem_add_break();
 
+// Loop unrolling
+void sem_start_record();
+char* sem_stop_record();
+void sem_emitir_bloque(char* bloque);
+
 // Utilidad
 void yyerror(const char *s);
 

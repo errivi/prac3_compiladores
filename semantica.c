@@ -20,26 +20,51 @@ static int switch_top = 0; // índice tope de la pila
 static lista_nodos* break_list_stack[20];
 static int break_list_top = 0;   // índice tope de la pila */
 
+// variabes para loop unrolling
+static int recording = 0;
+static char code_buffer[4096];     // buffer para guardar cuerpo bucle limitado a 4KB
+
 /* --- GESTIÓN DEL BUFFER DE CÓDIGO --- */
 
 int sem_generar_etiqueta() {
     return sig_instruccion;
 }
-
 int sem_emitir(const char* fmt, ...) {
+    va_list args;
+    
+    /* modo para loop unrolling (guardando cuerpo bucle) */
+    if (recording) {
+        char temp[1024]; // Buffer temporal local
+        
+        va_start(args, fmt);
+        vsnprintf(temp, 1024, fmt, args);
+        va_end(args);
+        
+        /* Concatenamos al buffer global */
+        if (strlen(code_buffer) + strlen(temp) + 2 < 4096) {
+            strcat(code_buffer, temp);
+            strcat(code_buffer, "\n");
+        } else {
+            fprintf(stderr, "Error: Cuerpo del bucle demasiado grande para unrolling.\n");
+        }
+        
+        return 0; // No cuenta como instrucción emitida
+    }
+
+    /* modo normal*/
     if (sig_instruccion >= MAX_INSTRUCCIONES) {
         fprintf(stderr, "Error fatal: Programa demasiado grande (max %d lineas)\n", MAX_INSTRUCCIONES);
         exit(1);
     }
 
-    char* buffer = malloc(TAM_BUFFER);
-    va_list args;
+    char* buffer = malloc(TAM_BUFFER); 
+    
     va_start(args, fmt);
     vsnprintf(buffer, TAM_BUFFER, fmt, args);
     va_end(args);
 
     instrucciones[sig_instruccion] = buffer;
-    return sig_instruccion++;
+    return sig_instruccion++; 
 }
 
 void sem_finalizar_salida(FILE* out) {
@@ -286,4 +311,29 @@ void sem_add_break() {
         break_list_stack[break_list_top - 1] = 
             sem_merge(break_list_stack[break_list_top - 1], sem_makelist(salto));
     }
+}
+
+/* --- LOOP UNROLLING --- */
+
+void sem_start_record() {
+    recording = 1;
+    code_buffer[0] = '\0'; // Limpiar buffer
+}
+
+char* sem_stop_record() {
+    recording = 0;
+    return strdup(code_buffer); // Devolver copia del buffer
+}
+
+/* Función auxiliar para imprimir un bloque de texto línea a línea */
+void sem_emitir_bloque(char* bloque) {
+    if (!bloque) return;
+    char* copia = strdup(bloque); // Copia para no romper el original con strtok
+    char* linea = strtok(copia, "\n");
+    while (linea != NULL) {
+        /* Usamos sem_emitir para que ponga el número de línea correcto */
+        sem_emitir("%s", linea);
+        linea = strtok(NULL, "\n");
+    }
+    free(copia);
 }
