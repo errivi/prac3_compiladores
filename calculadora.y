@@ -33,6 +33,7 @@ void log_regla(const char *mensaje) {
 %token T_EOL T_PCOMA T_COMA 
 %token T_REPEAT T_DO T_DONE T_OPCIONS
 %token T_WHILE T_UNTIL
+%token T_FOR T_IN T_DOTDOT
 %token T_LPAREN T_RPAREN T_LBRACKET T_RBRACKET 
 %token T_ASSIGN
 
@@ -57,6 +58,7 @@ void log_regla(const char *mensaje) {
 %type <atris> marcador_inicio_repeat 
 %type <atris> condicion M N
 %type <atris> cond_or cond_and cond_not cond_rel
+%type <atris> for_header
 
 %type <ival> tipo declaracion
 
@@ -169,6 +171,33 @@ sentencia:
         sem_backpatch($6.falselist, $2.quad); // Vuelve atrás
         sem_backpatch($6.truelist, sem_generar_etiqueta()); // Sale
     }
+
+/* 10. FOR: Usa la cabecera auxiliar */
+    | for_header T_EOL lista_sentencias T_DONE T_EOL {
+        log_regla("Sentencia: FOR");
+        
+        /* Recuperamos la información de la cabecera ($1) */
+        info_simbolo* iterador = $1.simb;
+        int etiqueta_inicio = $1.quad;
+        lista_nodos* salida = $1.falselist;
+        
+        /* 5. Incremento Automático: iterador := iterador + 1 */
+        /* Reconstruimos atributos para poder usar sem_operar_binario */
+        atributos at_iter; at_iter.simb = iterador;
+        atributos at_uno = sem_crear_literal("1", T_ENTERO);
+        
+        /* Generamos la suma */
+        atributos suma = sem_operar_binario(at_iter, at_uno, "ADDI", "ADDF");
+        
+        /* Asignamos el resultado a la variable iteradora */
+        sem_asignar(iterador->nombre, suma);
+        
+        /* 6. Volver al inicio (Check condición) */
+        sem_emitir("GOTO %d", etiqueta_inicio);
+        
+        /* 7. Rellenar la salida (Backpatching del False de la condición) */
+        sem_backpatch(salida, sem_generar_etiqueta());
+    }
     
     | error T_EOL { yyerrok; }
     ;
@@ -206,6 +235,38 @@ marcador_inicio_repeat:
         a.quad = sem_generar_etiqueta();
         a.truelist = NULL; a.falselist = NULL; a.nextlist = NULL;
         $$ = a;
+    }
+    ;
+
+/* Regla auxiliar para configurar la cabecera del FOR */
+for_header:
+    T_FOR T_ID T_IN expresion T_DOTDOT expresion T_DO {
+        /* 1. Inicialización: variable := inicio */
+        sem_asignar($2, $4);
+        
+        /* 2. Etiqueta INICIO (para volver aquí tras cada iteración) */
+        int etiqueta_inicio = sem_generar_etiqueta();
+        
+        /* 3. Condición: variable <= fin */
+        /* Recuperamos el símbolo de la variable iteradora */
+        atributos id_atrs = sem_obtener_simbolo($2);
+        
+        /* Generamos la comparación LE (Less or Equal) */
+        atributos cond = sem_operar_relacional(id_atrs, $6, "LE");
+        
+        /* 4. Gestión de Saltos */
+        /* TRUE: Si es menor o igual, entra al cuerpo (siguiente instrucción) */
+        sem_backpatch(cond.truelist, sem_generar_etiqueta());
+        
+        /* FALSE: Si es mayor, debe salir. Guardamos esta lista para el final. */
+        
+        /* Empaquetamos todo para devolverlo a la regla principal */
+        atributos res;
+        res.quad = etiqueta_inicio;      // Para el GOTO de vuelta
+        res.falselist = cond.falselist;  // Para el GOTO de salida
+        res.simb = id_atrs.simb;         // Guardamos el puntero al ID para incrementarlo luego
+        
+        $$ = res;
     }
     ;
 

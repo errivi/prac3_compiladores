@@ -56,7 +56,9 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 "fi"            { return T_FI; }
 "else"          { return T_ELSE; }
 "while"         { return T_WHILE; }
-"until"         { return T_UNTIL; }   
+"until"         { return T_UNTIL; }
+"for"           { return T_FOR; }
+"in"            { return T_IN; }
 "Opcions:"      { return T_OPCIONS; }
 
 
@@ -96,6 +98,7 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 "]"             { return T_RBRACKET; } 
 ";"             { return T_PCOMA; }
 ","             { return T_COMA; }
+".."            { return T_DOTDOT; }
 
     /* --- Identificadores --- */
 {IDENTIFICADOR} { yylval.texto = strdup(yytext); return T_ID; }

@@ -1,0 +1,12 @@
+int i
+int v[5]
+
+// Llenar el array: v[i] = i * 10
+for i in 0..4 do
+    v[i] := i * 10
+done
+
+// Resultado esperado en el array:
+// 0, 10, 20, 30, 40
+// Al acabar, i valdrá 5.
+i
