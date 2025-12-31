@@ -45,7 +45,7 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 
 \n              { lineno++; return T_EOL; }
 
-    /* --- Keywords (Solo las necesarias para C3A) --- */
+    /* --- Keywords  --- */
 "int"           { return T_INT; }
 "float"         { return T_FLOAT; }
 "repeat"        { return T_REPEAT; }
@@ -59,6 +59,10 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 "until"         { return T_UNTIL; }
 "for"           { return T_FOR; }
 "in"            { return T_IN; }
+"switch"        { return T_SWITCH; }
+"case"          { return T_CASE; }
+"default"       { return T_DEFAULT; }
+"break"         { return T_BREAK; }
 "Opcions:"      { return T_OPCIONS; }
 
 
@@ -99,6 +103,7 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 ";"             { return T_PCOMA; }
 ","             { return T_COMA; }
 ".."            { return T_DOTDOT; }
+";"             { return T_COLON; }
 
     /* --- Identificadores --- */
 {IDENTIFICADOR} { yylval.texto = strdup(yytext); return T_ID; }
