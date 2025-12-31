@@ -1,0 +1,26 @@
+int a
+int b
+int res
+
+a := 2
+b := 0
+
+// Test Switch (con lógica de pila implementada en C)
+switch a {
+    case 1:
+        res := 100
+    case 2:
+        // Debería entrar aquí
+        res := 200
+        // Probamos anidamiento y lógica compleja dentro
+        if b == 0 then
+             b := 999
+        fi
+    case 3:
+        res := 300
+    default:
+        res := 0
+}
+
+res
+b

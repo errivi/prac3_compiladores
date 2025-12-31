@@ -1,63 +1,69 @@
-# Práctica 2: Generación de Código de Tres Direcciones (C3A)
+# Práctica 3: Compilador a Código de Tres Direcciones (C3A)
 
-**Asignatura:** Compiladores (GEI)
+**Asignatura:** Compiladores
 **Autor:** Eric Riveiro
 **Curso:** 2025-26
 
 ---
 
 ### 1. Descripción General
-Este proyecto implementa el back-end de un compilador capaz de traducir un lenguaje de alto nivel (con soporte para arrays y estructuras de control iterativas) a Código de Tres Direcciones (C3A).
+Este proyecto implementa un compilador completo capaz de analizar un lenguaje de programación imperativo estructurado y generar Código de Tres Direcciones (C3A).
 
-El compilador realiza el análisis léxico y sintáctico para posteriormente emitir instrucciones C3A numeradas, gestionando automáticamente la asignación de registros temporales ($tXX) y etiquetas de salto.
+El sistema utiliza **Flex** para el análisis léxico y **Bison** para el análisis sintáctico y semántico. A diferencia de un evaluador simple, este compilador implementa técnicas avanzadas de generación de código en una sola pasada, destacando el uso de **Backpatching** (parcheo hacia atrás) para resolver las direcciones de salto en estructuras de control complejas y la evaluación lógica en cortocircuito.
 
 ---
 
 ### 2. Características Implementadas
 
-* **Generación de C3A:**
-    * Traducción de expresiones aritméticas complejas a instrucciones simples (ADDI, MULF, etc.).
-    * Gestión automática de casting implícito (promoción de `int` a `float`) insertando instrucciones `I2F`.
-    * Generación de variables temporales secuenciales ($t01, $t02...).
+* **Generación Base de C3A:**
+    * Traducción de expresiones aritméticas con precedencia correcta (`+`, `-`, `*`, `/`, `%`, `**`).
+    * Gestión automática de tipos (`int`, `float`) e instrucciones específicas (`ADDI`/`ADDF`).
+    * Generación de variables temporales secuenciales (`$t01`, `$t02`...).
 
-* **Estructuras de Control (Repeat-Do-Done):**
-    * Traducción de bucles `repeat` a patrones de salto condicional.
-    * Gestión de etiquetas numéricas y contadores internos ocultos.
-    * Lógica: Inicialización -> Cuerpo -> Incremento -> IF contador < N GOTO inicio.
+* **Lógica Booleana y Cortocircuito:**
+    * Implementación de operadores relacionales (`<`, `>`, `==`, etc.) y lógicos (`and`, `or`, `not`).
+    * **Evaluación en Cortocircuito:** Las expresiones booleanas no generan valores numéricos, sino flujo de control. Si la primera parte de un `AND` es falsa, se salta el resto.
 
-* **Gestión de Memoria (Arrays/Taules):**
-    * Soporte para arrays unidimensionales (`int a[10]`).
-    * Cálculo explícito de direcciones de memoria (desplazamiento = índice * 4 bytes).
-    * Generación de instrucciones de Consulta Desplazada (`$t := a[off]`) y Asignación Desplazada (`a[off] := $t`).
+* **Estructuras de Control Condicional:**
+    * `IF-THEN` y `IF-THEN-ELSE` con soporte completo de anidamiento.
+    * **SWITCH:** Selección múltiple con lógica de cascada, soportando bloques `case`, `default` y anidamiento de switches.
+
+* **Estructuras de Iteración (Bucles):**
+    * **Indeterminados:** `WHILE` (evaluación inicial) y `DO-UNTIL` (evaluación final).
+    * **Determinados:** `REPEAT` (repetición fija) y `FOR` (iterador acotado con incremento automático).
+
+* **Gestión de Memoria (Arrays):**
+    * Declaración y uso de vectores unidimensionales.
+    * Cálculo de direcciones base + desplazamiento (offset) para instrucciones de acceso indexado.
 
 ---
 
 ### 3. Decisiones de Diseño
 
-**A. Arquitectura del Generador (`semantica.c`):**
-Se ha sustituido el motor de evaluación de la práctica anterior por un motor de emisión.
-* `sem_operar_binario`: Ya no calcula resultados. Genera un nuevo temporal, determina la instrucción correcta (ej: ADDI vs ADDF) basándose en los tipos de los operandos, y emite la línea de código.
-* **Casting:** Se realiza una comprobación de tipos previa a la emisión. Si se detecta una operación mixta, se emite una instrucción de conversión `I2F` antes de la operación principal.
+**A. Backpatching y Marcadores:**
+Para evitar múltiples pasadas sobre el código fuente o el uso de etiquetas fijas precalculadas, se ha implementado un sistema de **Backpatching**.
+* Se utilizan listas enlazadas de instrucciones incompletas (`truelist`, `falselist`, `nextlist`).
+* Se introducen marcadores gramaticales no terminales (`M`, `N`) que capturan la posición actual (`quad`) o generan saltos incondicionales pendientes, permitiendo rellenar las direcciones de salto una vez que el parser alcanza el destino.
 
-**B. Gestión de Bucles en Bison:**
-Para permitir la generación de código del `repeat`, se ha introducido una regla auxiliar (`marcador_inicio_repeat`) en la gramática.
-* Esta regla se ejecuta *antes* de procesar las sentencias del cuerpo.
-* Su función es inicializar el contador del bucle ($tXX := 0) y capturar el número de línea (etiqueta) actual.
-* Esto permite emitir el `GOTO` correcto al cerrar el bucle en la regla principal.
+**B. Gestión del SWITCH (Pila de Contextos):**
+El `SWITCH` presenta un desafío al permitir anidamiento (un switch dentro de otro).
+* **Solución:** Se ha implementado una pila estática en C (`sem_push_switch` / `sem_pop_switch`) dentro de `semantica.c`.
+* Esto permite guardar la variable que se está evaluando en el switch actual. Al entrar en un switch anidado, se apila la nueva variable, y al salir se desapila, garantizando que los `CASE` siempre comparen contra la variable correcta.
+* La generación de código sigue un patrón de "Cascada IF-GOTO": Comprobar valor -> Ejecutar cuerpo -> Saltar al final.
 
-**C. Arrays y Desplazamientos:**
-Se asume un tamaño de palabra de 4 bytes tanto para enteros como para reales.
-* El acceso `a[i]` genera dos instrucciones C3A: una multiplicación (`MULI 4`) para obtener el offset y el acceso indexado.
+**C. Estructura del Bucle FOR:**
+El bucle `FOR` requiere ejecutar la inicialización y la condición *antes* del cuerpo, pero el incremento *después*.
+* Se implementó una regla auxiliar `for_header` en la gramática. Esta regla genera la inicialización, la etiqueta de inicio y la condición de salida antes de procesar las sentencias, devolviendo la información necesaria (etiquetas y puntero al iterador) para generar el incremento y el salto de vuelta al cerrar el bucle.
 
 ---
 
 ### 4. Estructura del Proyecto
 
-* `calculadora.l`: Analizador Léxico (Reconoce tokens repeat, arrays, opcions...).
-* `calculadora.y`: Analizador Sintáctico (Define la gramática y coordina la generación).
-* `semantica.c/h`: Motor de generación de C3A. Gestiona temporales, etiquetas y emisión.
-* `symtab.c/h`: Tabla de Símbolos (Almacena declaraciones).
-* `Makefile`: Script de compilación y testing.
+* `calculadora.l`: Analizador Léxico (Tokens, keywords, literales).
+* `calculadora.y`: Analizador Sintáctico (Gramática, reglas de Backpatching y marcadores).
+* `semantica.c/h`: Motor de generación. Contiene la lógica de emisión, las funciones de listas (makelist, merge, backpatch) y la pila del switch.
+* `symtab.c/h`: Tabla de Símbolos (Gestión de variables y tipos).
+* `Makefile`: Automatización de compilación y limpieza.
 
 ---
 
@@ -67,29 +73,13 @@ Se asume un tamaño de palabra de 4 bytes tanto para enteros como para reales.
 ```bash
 make
 ```
-**Ejecución de Tests Automáticos:**
-El proyecto incluye una batería de pruebas que verifica cada fase del desarrollo.
+**Ejecución Manual**
+Para generar el C3A de un archivo de prueba específico:
 ```bash
-make test
+./calculadora test_switch.txt
 ```
-Esto generará dos carpetas:
-* `resultados_pruebas_test/`: Contiene los ficheros .out con el código C3A generado.
-* `logs_pruebas_test/`: Contiene los logs de depuración interna del parser.
-
-**Ejecución Manual:**
-```bash
-./calculadora pruebas_test/prueba_fase4.txt
-```
-**Limpieza:**
+**Limpieza**
+Para eliminar ejecutables y archivos temporales:
 ```bash
 make clean
 ```
-**Preparación de la carpeta `pruebas_test`**
-Asegúrate de tener la carpeta creada y mete ahí tus archivos .txt:
-```bash
-mkdir -p pruebas_test
-# Mueve o crea aquí los archivos:
-# prueba_fase1.txt
-# prueba_fase2.txt
-# prueba_fase3.txt
-# prueba_fase4.txt
