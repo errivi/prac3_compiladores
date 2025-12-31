@@ -12,6 +12,10 @@ static char* instrucciones[MAX_INSTRUCCIONES];
 static int sig_instruccion = 1; /* Empieza en 1 */
 static int contador_temporales = 1;
 
+// variables pila para switch (hasta 10 anidados)
+static char* switch_stack[10];
+static int switch_top = 0; // índice tope de la pila
+
 /* --- GESTIÓN DEL BUFFER DE CÓDIGO --- */
 
 int sem_generar_etiqueta() {
@@ -232,4 +236,23 @@ atributos sem_operar_relacional(atributos A, atributos B, char* op) {
     
     res.nextlist = NULL;
     return res;
+}
+
+/* --- GESTIÓN DE SWITCH --- */
+
+void sem_push_switch(char* nombre_var) {
+    if (switch_top < 10) {
+        switch_stack[switch_top++] = strdup(nombre_var);
+    }
+}
+
+void sem_pop_switch() {
+    if (switch_top > 0) {
+        switch_top--;
+    }
+}
+
+char* sem_get_switch_var() {
+    if (switch_top > 0) return switch_stack[switch_top - 1];
+    return "err";
 }

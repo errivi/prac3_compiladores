@@ -60,8 +60,13 @@ void sem_declarar_array(int tipo, char* nombre, int tamanyo);
 // Operaciones booleanas
 atributos sem_operar_relacional(atributos A, atributos B, char* op);
 
-// Función específica para cerrar el bucle REPEAT (Práctica 2 legacy, adaptado)
+// Función específica para cerrar el bucle REPEAT
 void sem_cerrar_repeat(info_simbolo* contador, info_simbolo* tope, int etiqueta_inicio);
+
+// Gestión de SWITCH
+void sem_push_switch(char* nombre_var); /* Entramos a un switch */
+void sem_pop_switch();                  /* Salimos de un switch */
+char* sem_get_switch_var();             /* ¿Qué variable estamos comparando? */
 
 // Utilidad
 void yyerror(const char *s);

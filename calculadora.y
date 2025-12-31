@@ -34,7 +34,8 @@ void log_regla(const char *mensaje) {
 %token T_REPEAT T_DO T_DONE T_OPCIONS
 %token T_WHILE T_UNTIL
 %token T_FOR T_IN T_DOTDOT
-%token T_LPAREN T_RPAREN T_LBRACKET T_RBRACKET 
+%token T_SWITCH T_CASE T_DEFAULT T_BREAK T_COLON
+%token T_LPAREN T_RPAREN T_LBRACKET T_RBRACKET T_LBRACE T_RBRACE
 %token T_ASSIGN
 
 /* Control de Flujo */
@@ -59,6 +60,8 @@ void log_regla(const char *mensaje) {
 %type <atris> condicion M N
 %type <atris> cond_or cond_and cond_not cond_rel
 %type <atris> for_header
+%type <atris> lista_casos caso default_caso
+%type <atris> inicio_caso
 
 %type <ival> tipo declaracion
 
@@ -198,8 +201,75 @@ sentencia:
         /* 7. Rellenar la salida (Backpatching del False de la condición) */
         sem_backpatch(salida, sem_generar_etiqueta());
     }
+
+    /* 11. SWITCH (Asegúrate de que esta regla está aquí) */
+    | T_SWITCH expresion T_LBRACE T_EOL { sem_push_switch($2.simb->nombre); } 
+      lista_casos 
+      T_RBRACE T_EOL {
+        log_regla("Sentencia: SWITCH");
+        sem_pop_switch();
+        
+        /* Backpatching de la salida */
+        sem_backpatch($6.nextlist, sem_generar_etiqueta());
+    }
     
     | error T_EOL { yyerrok; }
+    ;
+
+/* lista_casos: Gestiona la recursividad de 'case ... case ... default' */
+/* Devolvemos una lista de 'salidas' (breaks) para rellenar al final del switch */
+
+lista_casos:
+    caso lista_casos { 
+          /* Fusionamos las listas de break de este caso con los siguientes */
+          atributos res;
+          res.nextlist = sem_merge($1.nextlist, $2.nextlist);
+          $$ = res;
+    }
+    | default_caso { $$ = $1; }
+    | /* vacío */ { 
+        atributos a; a.nextlist = NULL; $$ = a; 
+    }
+    ;
+
+/* Regla auxiliar: Genera el IF *antes* de procesar el cuerpo */
+inicio_caso:
+    T_CASE T_LIT_ENTERO T_COLON T_EOL {
+        char* var_switch = sem_get_switch_var();
+        char num[20]; sprintf(num, "%d", $2);
+        
+        /* 1. Emitimos la comprobación: IF var != num GOTO [siguiente] */
+        int instr_check = sem_emitir("IF %s NE %s GOTO", var_switch, num);
+        
+        /* Devolvemos la lista con este salto pendiente para rellenarlo luego */
+        atributos res;
+        res.truelist = sem_makelist(instr_check); 
+        $$ = res;
+    }
+    ;
+
+caso:
+    inicio_caso lista_sentencias {
+        /* $1 contiene el salto del IF pendiente */
+        
+        /* 2. Terminamos el cuerpo con un salto al FINAL del switch */
+        int instr_salida = sem_emitir("GOTO");
+        
+        /* 3. Ahora que hemos acabado el cuerpo, sabemos dónde empieza el siguiente caso.
+              Hacemos Backpatch del IF ($1) para que salte AQUÍ si la condición falló. */
+        sem_backpatch($1.truelist, sem_generar_etiqueta());
+        
+        atributos res;
+        res.nextlist = sem_makelist(instr_salida);
+        $$ = res;
+    }
+    ;
+
+default_caso:
+    T_DEFAULT T_COLON T_EOL lista_sentencias {
+        /* No genera salidas pendientes (cae al final) */
+        atributos res; res.nextlist = NULL; $$ = res;
+    }
     ;
 
 /* --- REGLAS AUXILIARES --- */
