@@ -1,0 +1,66 @@
+// ==========================================
+// TEST DE ESTRES: TORTURA DE CONTROL DE FLUJO
+// ==========================================
+int a
+int b
+int c
+int res
+int counter
+
+a := 10
+b := 20
+c := 30
+res := 0
+counter := 0
+
+// Nivel 1: Bucle Externo
+while counter < 3 do
+
+    // Nivel 2: Switch Externo
+    switch a {
+        case 10:
+            // Nivel 3: Condicional Complejo (Cortocircuito Extremo)
+            // (T or ?) and (F or T) and (T)
+            // Lógica esperada:
+            // 1. (a==10) es T -> salta a evaluar siguiente bloque AND (salta el b==999)
+            // 2. (b>100) es F -> evalúa (c==30) -> es T -> salta a siguiente bloque AND
+            // 3. not (a<5). a<5 es F, not F es T.
+            // Resultado: ENTRA
+            if (a == 10 or b == 999) and (b > 100 or c == 30) and not (a < 5) then
+                
+                // Nivel 4: Switch Interno (Anidado sobre variable distinta)
+                switch counter {
+                    case 0:
+                        res := res + 1
+                    case 1:
+                        res := res + 10
+                    default:
+                        res := res + 100
+                }
+                
+            else
+                res := 9999
+            fi
+        
+        default:
+            res := 0
+    }
+    
+    // Aritmética compleja (Precedencia)
+    // 1 + (2 * (3 ** 2)) = 1 + (2 * 9) = 19
+    c := 1 + 2 * 3 ** 2
+
+    // Actualizamos variables
+    // Truco: a no cambia, así que siempre entra en case 10
+    a := a + 0 
+    counter := counter + 1
+done
+
+// Trazabilidad esperada:
+// Iter 0: counter=0 -> entra IF -> switch int (case 0) -> res = 0 + 1 = 1
+// Iter 1: counter=1 -> entra IF -> switch int (case 1) -> res = 1 + 10 = 11
+// Iter 2: counter=2 -> entra IF -> switch int (default)-> res = 11 + 100 = 111
+// Fin bucle.
+
+res
+c
