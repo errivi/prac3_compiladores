@@ -1,0 +1,14 @@
+int a
+a := 0
+
+// Esto debe generar 3 instrucciones seguidas sin GOTO
+repeat 3 do
+    a := a + 1
+done
+
+// Esto debe generar un bucle con IF y GOTO
+repeat 10 do
+    a := a + 2
+done
+
+a
