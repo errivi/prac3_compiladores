@@ -36,6 +36,14 @@ El sistema utiliza **Flex** para el análisis léxico y **Bison** para el análi
     * Declaración y uso de vectores unidimensionales.
     * Cálculo de direcciones base + desplazamiento (offset) para instrucciones de acceso indexado.
 
+* **Optimizaciones Avanzadas:**
+    * **Loop Unrolling (Desenrollado de Bucles):** Para bucles `repeat` con un número de iteraciones literal pequeño (<= 5), el compilador elimina la estructura de control (`IF`/`GOTO`) y genera el código del cuerpo repetido secuencialmente, mejorando el rendimiento.
+    * Implementado mediante un sistema de "Grabación de Buffer" en `semantica.c` que captura el código C3A antes de emitirlo.
+
+* **Control de Flujo Explícito:**
+    * **Instrucción `break`:** Permite salir prematuramente de cualquier bucle (`while`, `for`, `repeat`, `switch`).
+    * Gestionado mediante una **Pila de Listas de Salida** (`break_list_stack`) que permite manejar correctamente los `break` dentro de bucles anidados.
+
 ---
 
 ### 3. Decisiones de Diseño
