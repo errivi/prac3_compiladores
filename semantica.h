@@ -40,7 +40,7 @@ lista_nodos* sem_merge(lista_nodos* l1, lista_nodos* l2);
 void sem_backpatch(lista_nodos* lista, int etiqueta_destino);
 
 
-// --- GESTIÓN DE VARIABLES Y OPERACIONES (ADAPTADO) ---
+// --- GESTIÓN DE VARIABLES Y OPERACIONES ---
 char* sem_generar_temporal();
 int sem_generar_etiqueta(); // Devuelve la siguiente instrucción libre
 
@@ -67,6 +67,11 @@ void sem_cerrar_repeat(info_simbolo* contador, info_simbolo* tope, int etiqueta_
 void sem_push_switch(char* nombre_var); /* Entramos a un switch */
 void sem_pop_switch();                  /* Salimos de un switch */
 char* sem_get_switch_var();             /* ¿Qué variable estamos comparando? */
+
+// Aux gestión bucle/switch
+void sem_init_break_layer();
+void sem_close_break_layer(int etiqueta_destino);
+void sem_add_break();
 
 // Utilidad
 void yyerror(const char *s);

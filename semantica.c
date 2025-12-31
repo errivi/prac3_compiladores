@@ -16,6 +16,10 @@ static int contador_temporales = 1;
 static char* switch_stack[10];
 static int switch_top = 0; // índice tope de la pila
 
+// variables pila para break (hasta 20 anidados)
+static lista_nodos* break_list_stack[20];
+static int break_list_top = 0;   // índice tope de la pila */
+
 /* --- GESTIÓN DEL BUFFER DE CÓDIGO --- */
 
 int sem_generar_etiqueta() {
@@ -255,4 +259,31 @@ void sem_pop_switch() {
 char* sem_get_switch_var() {
     if (switch_top > 0) return switch_stack[switch_top - 1];
     return "err";
+}
+
+/* --- PILA DE LISTAS DE BREAK --- */
+
+void sem_init_break_layer() {
+    /* Iniciamos una nueva capa (nuevo bucle) */
+    if (break_list_top < 20) {
+        break_list_stack[break_list_top++] = NULL; // Lista vacía
+    }
+}
+
+void sem_close_break_layer(int etiqueta_destino) {
+    /* Cerramos capa y rellenamos todos los breaks pendientes de este nivel */
+    if (break_list_top > 0) {
+        break_list_top--;
+        sem_backpatch(break_list_stack[break_list_top], etiqueta_destino);
+    }
+}
+
+void sem_add_break() {
+    /* Añadimos un salto pendiente a la capa actual */
+    if (break_list_top > 0) {
+        int salto = sem_emitir("GOTO"); // Salto hueco
+        // Añadir a la lista del tope de la pila
+        break_list_stack[break_list_top - 1] = 
+            sem_merge(break_list_stack[break_list_top - 1], sem_makelist(salto));
+    }
 }

@@ -141,7 +141,7 @@ sentencia:
     }
 
     /* 8. WHILE: while M cond do M sentencias done */
-    | T_WHILE M condicion T_DO M T_EOL lista_sentencias T_DONE T_EOL {
+    | T_WHILE M condicion T_DO M T_EOL { sem_init_break_layer(); } lista_sentencias T_DONE T_EOL {
         log_regla("Sentencia: WHILE");
         /* $2 (M1): Etiqueta inicio Condición (para volver atrás)
            $3 (cond): La condición con sus listas true/false
@@ -154,13 +154,16 @@ sentencia:
 
         /* 2. Generamos la etiqueta de salida (sig_instruccion libre) */
         /* y rellenamos los saltos falsos para que vengan aquí. */
-        sem_backpatch($3.falselist, sem_generar_etiqueta());
+        int etiqueta_salida = sem_generar_etiqueta();
+        sem_backpatch($3.falselist, etiqueta_salida);
 
+        /* mandamoslos breaks a la salida */
+        sem_close_break_layer(etiqueta_salida);
 
     }
 
     /* 9. DO-UNTIL: do M sentencias until cond */
-    | T_DO M T_EOL lista_sentencias T_UNTIL condicion T_EOL {
+    | T_DO M T_EOL { sem_init_break_layer(); } lista_sentencias T_UNTIL condicion T_EOL {
         log_regla("Sentencia: DO-UNTIL");
         /* $2 (M): Etiqueta inicio Cuerpo
            $6 (cond): Condición de salida
@@ -172,11 +175,15 @@ sentencia:
         */
         
         sem_backpatch($6.falselist, $2.quad); // Vuelve atrás
-        sem_backpatch($6.truelist, sem_generar_etiqueta()); // Sale
+        int etiqueta_salida = sem_generar_etiqueta();
+        sem_backpatch($6.truelist, etiqueta_salida); // Sale
+
+        /* mandamoslos breaks a la salida */
+        sem_close_break_layer(etiqueta_salida);
     }
 
-/* 10. FOR: Usa la cabecera auxiliar */
-    | for_header T_EOL lista_sentencias T_DONE T_EOL {
+    /* 10. FOR: Usa la cabecera auxiliar */
+    | for_header T_EOL { sem_init_break_layer(); } lista_sentencias T_DONE T_EOL {
         log_regla("Sentencia: FOR");
         
         /* Recuperamos la información de la cabecera ($1) */
@@ -199,7 +206,11 @@ sentencia:
         sem_emitir("GOTO %d", etiqueta_inicio);
         
         /* 7. Rellenar la salida (Backpatching del False de la condición) */
-        sem_backpatch(salida, sem_generar_etiqueta());
+        int etiqueta_salida = sem_generar_etiqueta();
+        sem_backpatch(salida, etiqueta_salida);
+
+        /* mandamoslos breaks a la salida */
+        sem_close_break_layer(etiqueta_salida);
     }
 
     /* 11. SWITCH (Asegúrate de que esta regla está aquí) */
@@ -210,7 +221,17 @@ sentencia:
         sem_pop_switch();
         
         /* Backpatching de la salida */
-        sem_backpatch($6.nextlist, sem_generar_etiqueta());
+        int etiqueta_salida = sem_generar_etiqueta();
+        sem_backpatch($6.nextlist, etiqueta_salida);
+
+        /* mandamoslos breaks a la salida */
+        sem_close_break_layer(etiqueta_salida);
+    }
+
+    /* 13. BREAK EXPLÍCITO */
+    | T_BREAK {
+        log_regla("Sentencia: BREAK");
+        sem_add_break();
     }
     
     | error T_EOL { yyerrok; }
