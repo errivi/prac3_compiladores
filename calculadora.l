@@ -112,6 +112,18 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 
 .               { printf("Error Léxico: Caracter desconocido '%s' en línea %d\n", yytext, lineno); }
 
+<<EOF>> {
+    static int once = 0;
+    
+    /* Si es la primera vez que tocamos el final, devolvemos un Salto de Linea extra */
+    if (once == 0) {
+        once = 1;
+        return T_EOL;
+    }
+    
+    /* Si ya lo hemos devuelto, terminamos de verdad */
+    yyterminate();
+}
 %%
 
 int yywrap() { return 1; }
