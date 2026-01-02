@@ -31,7 +31,7 @@ void log_regla(const char *mensaje) {
 }
 
 /* --- TOKENS --- */
-%token T_EOL T_PCOMA T_COMA 
+%token T_EOL T_COMA 
 %token T_REPEAT T_DO T_DONE T_OPCIONS
 %token T_WHILE T_UNTIL
 %token T_FOR T_IN T_DOTDOT

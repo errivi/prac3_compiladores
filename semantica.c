@@ -235,10 +235,6 @@ void sem_imprimir_expresion(atributos s) {
     else sem_emitir("CALL PUTI, 1");
 }
 
-void sem_cerrar_repeat(info_simbolo* contador, info_simbolo* tope, int etiqueta_inicio) {
-    sem_emitir("%s := %s ADDI 1", contador->nombre, contador->nombre);
-    sem_emitir("IF %s LTI %s GOTO %d", contador->nombre, tope->nombre, etiqueta_inicio);
-}
 
 /* --- LÓGICA BOOLEANA --- */
 
