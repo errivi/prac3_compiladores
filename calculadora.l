@@ -100,7 +100,6 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 "]"             { return T_RBRACKET; }
 "{"             { return T_LBRACE; }
 "}"             { return T_RBRACE; }
-";"             { return T_PCOMA; }
 ","             { return T_COMA; }
 ".."            { return T_DOTDOT; }
 ":"             { return T_COLON; }
