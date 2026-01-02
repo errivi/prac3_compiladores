@@ -103,9 +103,9 @@ void sem_backpatch(lista_nodos* lista, int etiqueta_destino) {
     while (p != NULL) {
         int ref = p->referencia;
         if (ref < sig_instruccion && instrucciones[ref] != NULL) {
-            // Reconstruimos la cadena añadiendo el número de etiqueta
             // Asumimos que la instrucción guardada era incompleta (ej: "IF ... GOTO")
             char nuevo_buffer[TAM_BUFFER];
+            // concatenamos la instrucción original con la etiqueta destino
             snprintf(nuevo_buffer, TAM_BUFFER, "%s %d", instrucciones[ref], etiqueta_destino);
             
             free(instrucciones[ref]);
@@ -180,7 +180,7 @@ void sem_declarar(int tipo, char* nombre) {
 }
 
 void sem_declarar_array(int tipo, char* nombre, int tamanyo) {
-    sem_declarar(tipo, nombre); // Simplificado
+    sem_declarar(tipo, nombre);
 }
 
 /* --- OPERACIONES --- */
@@ -236,7 +236,6 @@ void sem_imprimir_expresion(atributos s) {
 }
 
 void sem_cerrar_repeat(info_simbolo* contador, info_simbolo* tope, int etiqueta_inicio) {
-    // Reimplementación usando el nuevo sem_emitir
     sem_emitir("%s := %s ADDI 1", contador->nombre, contador->nombre);
     sem_emitir("IF %s LTI %s GOTO %d", contador->nombre, tope->nombre, etiqueta_inicio);
 }
@@ -244,11 +243,10 @@ void sem_cerrar_repeat(info_simbolo* contador, info_simbolo* tope, int etiqueta_
 /* --- LÓGICA BOOLEANA --- */
 
 atributos sem_operar_relacional(atributos A, atributos B, char* op) {
-    /* 1. Comprobar tipos y castear si es necesario (igual que en binario) */
+    /* 1. Comprobar tipos y castear si es necesario */
     char* sufijo = "I"; // Por defecto Entero
     if (A.simb->tipo == T_REAL || B.simb->tipo == T_REAL) {
         sufijo = "F";   // Si alguno es real, usamos Float
-        // (Aquí irían los castings I2F si quieres ser purista, por ahora asumimos compatibilidad)
     }
 
     /* 2. Construir el operador completo (ej: "LTI" o "LTF") */
@@ -318,8 +316,7 @@ void sem_add_break() {
     if (break_list_top > 0) {
         int salto = sem_emitir("GOTO"); // Salto hueco
         // Añadir a la lista del tope de la pila
-        break_list_stack[break_list_top - 1] = 
-            sem_merge(break_list_stack[break_list_top - 1], sem_makelist(salto));
+        break_list_stack[break_list_top - 1] = sem_merge(break_list_stack[break_list_top - 1], sem_makelist(salto));
     }
 }
 

@@ -63,8 +63,6 @@ REAL          {ENTERO}\.{DIGITO}+({EXPONENTE})?|{ENTERO}{EXPONENTE}
 "case"          { return T_CASE; }
 "default"       { return T_DEFAULT; }
 "break"         { return T_BREAK; }
-"Opcions:"      { return T_OPCIONS; }
-
 
 
     /* --- Literales Numéricos --- */

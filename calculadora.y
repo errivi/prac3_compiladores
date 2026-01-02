@@ -137,7 +137,7 @@ sentencia:
 
         /* --- CAMINO A: OPTIMIZACIÓN (Unrolling) --- */
         if (es_literal && repeticiones > 0 && repeticiones <= 5) {
-             // Simplemente pegamos el código N veces
+             // pegamos el código N veces
              for (int k = 0; k < repeticiones; k++) {
                  sem_emitir_bloque(cuerpo);
              }
@@ -174,11 +174,10 @@ sentencia:
              // 8. Etiqueta final (Backpatching del False)
              sem_backpatch(cond.falselist, sem_generar_etiqueta());
         }
-        
         free(cuerpo);
     }
 
-    /* 6. IF-THEN (Sin Else) */
+    /* 6. IF-THEN */
     | T_IF condicion T_THEN M T_EOL lista_sentencias T_FI T_EOL {
         log_regla("Sentencia: IF");
         sem_backpatch($2.truelist, $4.quad);
@@ -232,9 +231,9 @@ sentencia:
            - Si TRUE: Sale (siguiente instrucción).
         */
         
-        sem_backpatch($7.falselist, $2.quad); // Vuelve atrás
+        sem_backpatch($7.falselist, $2.quad); // falso -> vuelve atrás
         int etiqueta_salida = sem_generar_etiqueta();
-        sem_backpatch($7.truelist, etiqueta_salida); // Sale
+        sem_backpatch($7.truelist, etiqueta_salida); // true -> sale
 
         /* mandamoslos breaks a la salida */
         sem_close_break_layer(etiqueta_salida);
@@ -271,7 +270,7 @@ sentencia:
         sem_close_break_layer(etiqueta_salida);
     }
 
-    /* 11. SWITCH (Asegúrate de que esta regla está aquí) */
+    /* 11. SWITCH */
     | T_SWITCH expresion T_LBRACE T_EOL { sem_push_switch($2.simb->nombre); } 
       lista_casos 
       T_RBRACE T_EOL {
