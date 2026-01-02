@@ -86,6 +86,14 @@ Para generar el C3A de un archivo de prueba específico:
 ```bash
 ./calculadora test_switch.txt
 ```
+**Ejecución de Tests Automáticos**
+El proyecto incluye una batería de pruebas automatizada que procesa todos los ficheros de prueba ubicados en la carpeta `pruebas_test/`.
+```bash
+make test
+```
+Este comando ejecutará secuencialmente los 10 tests configurados y organizará la salida en dos directorios generados automáticamente:
+* `resultados_pruebas_test/`: Contiene los archivos `.out`con el C3A generado.
+* `logs_pruebas_test/`: Contiene los archivos `.log`con la traza interna del parser.
 **Limpieza**
 Para eliminar ejecutables y archivos temporales:
 ```bash
