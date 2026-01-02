@@ -22,6 +22,19 @@ CC = gcc
 CFLAGS = -Wall -g
 LIBS = -lm
 
+# --- Lista de Tests ---
+# Añade aquí los nombres de los ficheros .txt que quieras probar
+TEST_FILES = test_aritmetica_buclesSimples.txt \
+             test_bool.txt \
+             test_break.txt \
+             test_bucles.txt \
+             test_for.txt \
+             test_if.txt \
+             test_switch.txt \
+             test_unroll.txt \
+             test_completo.txt \
+             test_estres.txt
+
 # --- Reglas Principales ---
 
 all: $(TARGET)
@@ -43,37 +56,35 @@ $(SYM_OBJ): $(SYM_SRC)
 $(SEM_OBJ): $(SEM_SRC)
 	$(CC) $(CFLAGS) -c $(SEM_SRC)
 
-# --- Limpieza y Tests ---
+# --- Limpieza y Tests Automáticos ---
 
 clean:
 	rm -f $(TARGET) $(FLEX_C) $(BISON_C) $(BISON_H) *.o *.log *.out
 	rm -rf $(RESULTS_DIR) $(LOGS_DIR)
 
 test: $(TARGET)
-	@echo "--- Iniciando Bateria de Tests ---"
+	@echo "========================================"
+	@echo "   INICIANDO BATERIA DE TESTS (AUTO)    "
+	@echo "========================================"
 	@mkdir -p $(RESULTS_DIR)
 	@mkdir -p $(LOGS_DIR)
-	
-	@echo "[1/5] Test Aritmetica Basica..."
-	-./$(TARGET) $(TEST_DIR)/test_aritmetica.txt > $(RESULTS_DIR)/test_aritmetica.out 2>&1
-	@if [ -f calculadora.log ]; then mv calculadora.log $(LOGS_DIR)/test_aritmetica.log; fi
-	
-	@echo "[2/5] Test Estructura Repeat..."
-	-./$(TARGET) $(TEST_DIR)/test_repeat.txt > $(RESULTS_DIR)/test_repeat.out 2>&1
-	@if [ -f calculadora.log ]; then mv calculadora.log $(LOGS_DIR)/test_repeat.log; fi
-	
-	@echo "[3/5] Test Arrays (Taules)..."
-	-./$(TARGET) $(TEST_DIR)/test_arrays.txt > $(RESULTS_DIR)/test_arrays.out 2>&1
-	@if [ -f calculadora.log ]; then mv calculadora.log $(LOGS_DIR)/test_arrays.log; fi
-
-	@echo "[4/5] Test Integrado Completo..."
-	-./$(TARGET) $(TEST_DIR)/test_completo.txt > $(RESULTS_DIR)/test_completo.out 2>&1
-	@if [ -f calculadora.log ]; then mv calculadora.log $(LOGS_DIR)/test_completo.log; fi
-
-	@echo "[5/5] Test de Estres..."
-	-./$(TARGET) $(TEST_DIR)/test_estres.txt > $(RESULTS_DIR)/test_estres.out 2>&1
-	@if [ -f calculadora.log ]; then mv calculadora.log $(LOGS_DIR)/test_estres.log; fi
-
-	@echo "--- Tests finalizados. Resultados en $(RESULTS_DIR)/ ---"
+	@count=1; \
+	total=$(words $(TEST_FILES)); \
+	for file in $(TEST_FILES); do \
+		echo "[$${count}/$${total}] Ejecutando $$file ..."; \
+		base=$${file%.*}; \
+		./$(TARGET) $(TEST_DIR)/$$file > $(RESULTS_DIR)/$${base}.out 2>&1; \
+		if [ -f calculadora.log ]; then \
+			mv calculadora.log $(LOGS_DIR)/$${base}.log; \
+		else \
+			echo "   (Nota: No se generó log para $$file)"; \
+		fi; \
+		count=$$((count + 1)); \
+	done
+	@echo "========================================"
+	@echo " TESTS FINALIZADOS "
+	@echo " -> Resultados C3A en: $(RESULTS_DIR)/"
+	@echo " -> Logs de depuracion en: $(LOGS_DIR)/"
+	@echo "========================================"
 
 .PHONY: all clean test

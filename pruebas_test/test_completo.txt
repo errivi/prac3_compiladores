@@ -1,0 +1,73 @@
+// ==========================================
+// TEST INTEGRAL: ANALISIS DE DATOS V2
+// ==========================================
+int data[10]
+int i
+int total
+int max
+int temp
+int modo
+int encontrado
+
+// 1. Inicialización con FOR
+// Rellenamos: 0, 10, 20, 30...
+for i in 0..9 do
+    data[i] := i * 10
+done
+
+// 2. NUEVO: Optimización Loop Unrolling (Repeat <= 5)
+// Sumamos 1 a los tres primeros elementos de forma rápida
+i := 0
+repeat 3 do
+    temp := data[i]
+    data[i] := temp + 1
+    i := i + 1
+done
+// data[0]=1, data[1]=11, data[2]=21, resto igual.
+
+// 3. NUEVO: Búsqueda lineal con BREAK
+// Buscamos el valor 50. Si lo encontramos, salimos.
+i := 0
+encontrado := -1
+
+while 1 == 1 do
+    // Condición de seguridad por si no está
+    if i == 10 then 
+        break 
+    fi
+    
+    temp := data[i]
+    
+    // Si encontramos el 50, guardamos índice y ROMPEMOS
+    if temp == 50 then
+        encontrado := i
+        break
+    fi
+    
+    i := i + 1
+done
+
+// 4. Calculo con DO-UNTIL y SWITCH
+modo := 1
+total := 0
+i := 0
+
+do
+    switch modo {
+        case 1:
+            temp := data[i]
+            total := total + temp
+        default:
+            total := 0
+    }
+    i := i + 1
+until i == 10
+
+// SALIDA ESPERADA:
+// data original: 0, 10, 20, 30, 40, 50, 60...
+// tras repeat 3: 1, 11, 21, 30, 40, 50...
+// encontrado: 5 (índice del 50)
+// total: suma de todo (aprox 453)
+
+encontrado
+total

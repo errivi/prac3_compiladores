@@ -1,0 +1,70 @@
+// ==========================================
+// TEST DE ESTRES: TORTURA FINAL (BREAK + UNROLL)
+// ==========================================
+int a
+int b
+int c
+int res
+int counter
+
+a := 10
+b := 20
+c := 30
+res := 0
+counter := 0
+
+// Nivel 1: Bucle Externo
+while counter < 5 do
+
+    // NUEVO: Break de emergencia al final
+    if counter == 3 then
+        break
+    fi
+
+    // Nivel 2: Switch Externo
+    switch a {
+        case 10:
+            // Condicional Complejo (Cortocircuito)
+            if (a == 10 or b == 999) and (b > 100 or c == 30) then
+                
+                // Nivel 4: Switch Interno
+                switch counter {
+                    case 0:
+                        res := res + 1
+                    case 1:
+                        // NUEVO: Probamos UNROLLING dentro de un CASE anidado
+                        // Esto debe generar 3 copias de 'res := res + 10'
+                        repeat 3 do
+                            res := res + 10
+                        done
+                    default:
+                        // NUEVO: Break interno. Solo debe salir del Switch Interno
+                        // no del bucle while principal.
+                        res := res + 1000
+                        break
+                        res := 0 // Codi mort (no debería ejecutarse)
+                }
+                
+            else
+                res := 9999
+            fi
+        default:
+            res := 0
+    }
+    
+    // Aritmética
+    c := 1 + 2 * 3 ** 2
+
+    // Actualizamos
+    counter := counter + 1
+done
+
+// Trazabilidad:
+// Iter 0: counter=0 -> switch int (case 0) -> res = 1
+// Iter 1: counter=1 -> switch int (case 1) -> repeat 3 (+30) -> res = 31
+// Iter 2: counter=2 -> switch int (default)-> res + 1000 -> break -> res = 1031
+// Iter 3: counter=3 -> IF inicial -> BREAK del while.
+// Fin.
+
+res
+c
