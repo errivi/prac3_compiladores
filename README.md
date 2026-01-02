@@ -63,6 +63,9 @@ El `SWITCH` presenta un desafío al permitir anidamiento (un switch dentro de ot
 El bucle `FOR` requiere ejecutar la inicialización y la condición *antes* del cuerpo, pero el incremento *después*.
 * Se implementó una regla auxiliar `for_header` en la gramática. Esta regla genera la inicialización, la etiqueta de inicio y la condición de salida antes de procesar las sentencias, devolviendo la información necesaria (etiquetas y puntero al iterador) para generar el incremento y el salto de vuelta al cerrar el bucle.
 
+**D. Sintaxis Switch:**
+Se ha optado por la sintaxis tipo C (`{}`) en lugar de `fswitch` por ser más moderna y coherente con el resto del lenguaje.
+
 ---
 
 ### 4. Estructura del Proyecto
